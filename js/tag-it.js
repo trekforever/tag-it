@@ -28,6 +28,7 @@
 
     $.widget('ui.tagit', {
         options: {
+            onlyAutocomplete  : false,
             allowDuplicates   : false,
             caseSensitive     : true,
             fieldName         : 'tags',
@@ -261,21 +262,26 @@
                         )
                     ) {
                         // Enter submits the form if there's no text in the input.
-                        if (!(event.which === $.ui.keyCode.ENTER && that.tagInput.val() === '')) {
+                        if(that.options.onlyAutocomplete !== true){
+                          // Enter submits the form if there's no text in the input.
+                          if (!(event.which === $.ui.keyCode.ENTER && that.tagInput.val() === '')) {
                             event.preventDefault();
-                        }
-
-                        // Autocomplete will create its own tag from a selection and close automatically.
-                        if (!that.tagInput.data('autocomplete-open')) {
+                          }
+            
+                          // Autocomplete will create its own tag from a selection and close automatically.
+                          if (!that.tagInput.data('autocomplete-open')) {
                             that.createTag(that._cleanedInput());
+                          }
                         }
                     }
                 }).blur(function(e){
-                    // Create a tag when the element loses focus.
-                    // If autocomplete is enabled and suggestion was clicked, don't add it.
-                    if (!that.tagInput.data('autocomplete-open')) {
-                        that.createTag(that._cleanedInput());
-                    }
+                    if(that.options.onlyAutocomplete !== true){
+                        // Create a tag when the element loses focus.
+                        // If autocomplete is enabled and suggestion was clicked, don't add it.
+                        if (!that.tagInput.data('autocomplete-open')) {
+                          that.createTag(that._cleanedInput());
+                        }
+                      }
                 });
 
             // Autocomplete.

@@ -286,24 +286,42 @@
 
             // Autocomplete.
             if (this.options.availableTags || this.options.tagSource || this.options.autocomplete.source) {
-                var autocompleteOptions = {
-                    select: function(event, ui) {
-                        that.createTag(ui.item.value);
-                        // Preventing the tag input to be updated with the chosen value.
-                        return false;
-                    }
-                };
+                if(this.options.autocomplete.useId)
+                {
+                    var autocompleteOptions = {
+                        select: function(event, ui) {
+                            that.createTag(ui.item.name, '', '', ui.item.id);
+                            return false;
+                        }
+                    };
+                } else {    
+                    var autocompleteOptions = {
+                        select: function(event, ui) {
+                            that.createTag(ui.item.value);
+                            // Preventing the tag input to be updated with the chosen value.
+                            return false;
+                        }
+                    };
+                }
                 $.extend(autocompleteOptions, this.options.autocomplete);
 
                 // tagSource is deprecated, but takes precedence here since autocomplete.source is set by default,
-                // while tagSource is left null by default.
+                // while tagSource is left null by defaultl
                 autocompleteOptions.source = this.options.tagSource || autocompleteOptions.source;
-
-                this.tagInput.autocomplete(autocompleteOptions).bind('autocompleteopen', function(event, ui) {
-                    that.tagInput.data('autocomplete-open', true);
-                }).bind('autocompleteclose', function(event, ui) {
-                    that.tagInput.data('autocomplete-open', false)
-                });
+                if ($.isFunction(this.options.autocomplete.renderItem)) {
+                    this.tagInput.autocomplete(autocompleteOptions).bind('autocompleteopen', function(event, ui) {
+                        that.tagInput.data('autocomplete-open', true);
+                    }).bind('autocompleteclose', function(event, ui) {
+                        that.tagInput.data('autocomplete-open', false)
+                    }).data("ui-autocomplete")._renderItem = this.options.autocomplete.renderItem;    
+                } else {
+                    this.tagInput.autocomplete(autocompleteOptions).bind('autocompleteopen', function(event, ui) {
+                        that.tagInput.data('autocomplete-open', true);
+                    }).bind('autocompleteclose', function(event, ui) {
+                        that.tagInput.data('autocomplete-open', false)
+                    });
+                }
+                
             }
         },
 
@@ -392,9 +410,9 @@
             return Boolean($.effects && ($.effects[name] || ($.effects.effect && $.effects.effect[name])));
         },
 
-        createTag: function(value, additionalClass, duringInitialization) {
+       createTag: function(value, additionalClass, duringInitialization, id) {
             var that = this;
-
+            that.id = id;
             value = $.trim(value);
 
             if(this.options.preprocessTag) {
@@ -426,7 +444,7 @@
             var label = $(this.options.onTagClicked ? '<a class="tagit-label"></a>' : '<span class="tagit-label"></span>').text(value);
 
             // Create tag.
-            var tag = $('<li></li>')
+            var tag = $('<li data-id="'+that.id+'"></li>')
                 .addClass('tagit-choice ui-widget-content ui-state-default ui-corner-all')
                 .addClass(additionalClass)
                 .append(label);
@@ -457,6 +475,7 @@
             if (this._trigger('beforeTagAdded', null, {
                 tag: tag,
                 tagLabel: this.tagLabel(tag),
+                id : that.id,
                 duringInitialization: duringInitialization
             }) === false) {
                 return;
@@ -479,6 +498,7 @@
             this._trigger('afterTagAdded', null, {
                 tag: tag,
                 tagLabel: this.tagLabel(tag),
+                id : that.id,
                 duringInitialization: duringInitialization
             });
 
@@ -488,6 +508,8 @@
         },
 
         removeTag: function(tag, animate) {
+            var that = this;
+            that.id = tag[0].dataset.id;
             animate = typeof animate === 'undefined' ? this.options.animate : animate;
 
             tag = $(tag);
@@ -515,13 +537,13 @@
                 var thisTag = this;
                 hide_args.push(function() {
                     tag.remove();
-                    thisTag._trigger('afterTagRemoved', null, {tag: tag, tagLabel: thisTag.tagLabel(tag)});
+                    thisTag._trigger('afterTagRemoved', null, {tag: tag, id: that.id, tagLabel: thisTag.tagLabel(tag)});
                 });
 
                 tag.fadeOut('fast').hide.apply(tag, hide_args).dequeue();
             } else {
                 tag.remove();
-                this._trigger('afterTagRemoved', null, {tag: tag, tagLabel: this.tagLabel(tag)});
+                this._trigger('afterTagRemoved', null, {tag: tag, id: that.id, tagLabel: this.tagLabel(tag)});
             }
 
         },
